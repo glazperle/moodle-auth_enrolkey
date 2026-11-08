@@ -224,4 +224,45 @@ final class utility_test extends \advanced_testcase {
         $errors = $form->validation($data + ['signup_token' => ' '], []);
         $this->assertArrayNotHasKey('signup_token', $errors);
     }
+
+    /**
+     * The institution is only asked for if the setting is on, and then it is required.
+     *
+     * @covers \auth_enrolkey\form\enrolkey_signup_form::institution_required
+     * @covers \auth_enrolkey\form\enrolkey_signup_form::validation
+     */
+    public function test_signup_form_institution(): void {
+        $this->resetAfterTest();
+        set_config('registerauth', 'enrolkey');
+        set_config('tokenrequired', 0, 'auth_enrolkey');
+        set_config('recaptcha', 0, 'auth_enrolkey');
+
+        $data = [
+            'username' => 'institutionuser',
+            'password' => 'Passw0rd!Passw0rd!',
+            'email' => 'institutionuser@example.com',
+            'email2' => 'institutionuser@example.com',
+            'firstname' => 'Insti',
+            'lastname' => 'Tution',
+            'city' => 'Berlin',
+            'country' => 'DE',
+            'signup_token' => '',
+        ];
+
+        // Off by default: no field and nothing required.
+        $form = new \auth_enrolkey\form\enrolkey_signup_form(null, null, 'post', '', ['autocomplete' => 'on']);
+        $this->assertFalse($form->institution_required());
+        $this->assertFalse(strpos($form->render(), 'name="institution"'));
+        $this->assertArrayNotHasKey('institution', $form->validation($data, []));
+
+        // On: the field is shown and an empty or blank value is rejected.
+        set_config('requireinstitution', 1, 'auth_enrolkey');
+        $form = new \auth_enrolkey\form\enrolkey_signup_form(null, null, 'post', '', ['autocomplete' => 'on']);
+        $this->assertTrue($form->institution_required());
+        $this->assertNotFalse(strpos($form->render(), 'name="institution"'));
+        foreach (['', ' ', "  \t "] as $value) {
+            $this->assertArrayHasKey('institution', $form->validation($data + ['institution' => $value], []));
+        }
+        $this->assertArrayNotHasKey('institution', $form->validation($data + ['institution' => 'ACME Schule'], []));
+    }
 }

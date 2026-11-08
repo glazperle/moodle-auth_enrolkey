@@ -95,6 +95,16 @@ if ($hassiteconfig) {
         )
     );
 
+    $settings->add(
+        new admin_setting_configselect(
+            'auth_enrolkey/requireinstitution',
+            get_string('settings_requireinstitution_title', 'auth_enrolkey'),
+            get_string('settings_requireinstitution_description', 'auth_enrolkey'),
+            0,
+            $options
+        )
+    );
+
     if (function_exists('totara_cohort_check_and_update_dynamic_cohort_members')) {
         $settings->add(
             new admin_setting_configcheckbox(

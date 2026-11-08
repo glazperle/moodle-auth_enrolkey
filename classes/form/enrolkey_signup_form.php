@@ -102,6 +102,15 @@ class enrolkey_signup_form extends \login_signup_form {
             $mform->addRule('signup_token', get_string('signup_missing', 'auth_enrolkey'), 'required', null, 'client');
         }
 
+        if ($this->institution_required()) {
+            // The value is stored in the standard user field "institution". Existing users are not affected,
+            // as no custom profile field with a required flag is created, which Moodle would enforce for everyone.
+            $institution = $mform->createElement('text', 'institution', get_string('institution'), 'maxlength="255" size="25"');
+            $mform->setType('institution', \core_user::get_property_type('institution'));
+            $mform->insertElementBefore($institution, 'signup_token');
+            $mform->addRule('institution', get_string('required'), 'required', null, 'client');
+        }
+
         if ($this->signup_captcha_enabled()) {
             $mform->addElement('recaptcha', 'recaptcha_element', get_string('security_question', 'auth'));
             $mform->addHelpButton('recaptcha_element', 'recaptcha', 'auth');
@@ -139,6 +148,11 @@ class enrolkey_signup_form extends \login_signup_form {
             if ($this->signup_token_required()) {
                 $errors['signup_token'] = get_string('signup_missing', 'auth_enrolkey');
             }
+        }
+
+        // Client side rules are not enough, check on the server as well. Whitespace only does not count.
+        if ($this->institution_required() && trim($data['institution'] ?? '') === '') {
+            $errors['institution'] = get_string('required');
         }
 
         if (get_config('auth_enrolkey', 'unsuspendaccounts') && utility::search_for_suspended_user($data)) {
@@ -191,6 +205,14 @@ class enrolkey_signup_form extends \login_signup_form {
         }
 
         return $selfenrolinstance;
+    }
+
+    /**
+     * Returns if the institution field is shown and required on the signup form.
+     * @return bool
+     */
+    public function institution_required() {
+        return !empty(get_config('auth_enrolkey', 'requireinstitution'));
     }
 
     /**
